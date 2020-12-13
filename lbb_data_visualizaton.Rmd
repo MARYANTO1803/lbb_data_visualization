@@ -1,0 +1,182 @@
+---
+title: "LBB DATA VISUALIZATION"
+author: "Maryanto"
+date: "12/11/2020"
+output: 
+  html_document :
+    theme: united
+    highlight: tango
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    toc_deep: 2
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+# clear-up the environment
+rm(list = ls())
+
+# chunk options
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center",
+  comment = "#>"
+)
+
+options(scipen = 9999)
+```
+
+# 1. LATAR BELAKANG
+
+Data yang digunakan adalah data harga sembako (sembilan bahan pokok) di prov DKI, dari bulan Januari 2020 sampai dengan bulan Juli 2020. Yang ingin di analisa :
+  
+  1. Berapa frekuensi komodi ditiap bulan ?
+  2. Bagaimana perbandingan harga rata-rata beras medium dan beras premium ditiap bulan ?
+
+# 2. DATA PRE PROCESSING
+
+## 2.1 READ DATA
+
+```{r}
+# load library
+library(readxl)
+```
+
+
+```{r}
+sembako <- read_excel('data_sembako_dki_jakarta_jan20_juli20.xlsx')
+sembako
+```
+
+## 2.2 CEK TYPE DATA
+
+```{r}
+str(sembako)
+```
+## 2.3 SESUAIKAN TYPE DATA
+
+```{r}
+sembako$komoditi <- factor(sembako$komoditi)
+sembako$satuan <- factor(sembako$satuan)
+sembako$harga <- as.numeric(sembako$harga)
+```
+
+## 2.4 GUNAKAN LUBRIDATE
+
+```{r}
+# load library
+library(lubridate)
+```
+
+```{r}
+sembako$tanggal <- ymd(sembako$tanggal)
+```
+
+```{r}
+# cek type data
+str(sembako)
+```
+```{r}
+# ekstrak kolom tanggal menggunakan fungsi 'month'
+sembako$bulan <- month(sembako$tanggal, label = T, abbr = F)
+head(sembako)
+```
+
+```{r}
+# cek type data
+str(sembako)
+```
+# 3. DATA PROCESSING
+
+## 3.1 FREKUENSI TIAP BULAN 
+
+```{r}
+sembako.month.freq <- data.frame(table(sembako$bulan))
+sembako.month.freq
+```
+
+```{r}
+# load library
+library (ggplot2)
+library(ggthemes)
+```
+
+## 3.2 PLOT 
+
+```{r}
+ggplot(data = sembako.month.freq[1:7,], mapping = aes(x = Freq, y = Var1)) +
+  geom_col(mapping = aes(fill = Freq)) +
+  geom_label(data = sembako.month.freq[1:7,],
+             mapping = aes(label = Freq),
+             nudge_y = 0.2,
+             size = 3) +
+  scale_fill_gradient(low = "skyblue", high = "blue") +
+  theme_pander() +
+  labs(title = "Frekuensi Komoditi Bulan January s/d Juli 2020",
+       subtitle = "Berdasarkan Frekuensi Komoditi",
+       x = "Frekuensi",
+       y = "Bulan",
+       fill = "Frekuensi") +
+  theme(legend.position = "top")
+```
+## 3.3 INSIGHT
+
+  Terlihat dari plot diatas dapat disimpulkan :
+  
+    a. Frekuensi komoditi tertinggi terdapat pada bulan Januari dan Juli
+    
+    b. Frekuensi komoditi terendah terdapat pada bulan Mei
+
+
+# 4. PLOTING
+
+  Sesuai petunjuk yang ada dilatar belakang, maka subset data beras medium dan beras premium. 
+
+## 4.1 SUBSETTING
+
+```{r}
+beras <- sembako[sembako$komoditi == "Beras Medium" | 
+                   sembako$komoditi == "Beras Premium", ]
+beras
+```
+## 4.2 BUAT AGGREGASI
+
+```{r}
+beras.agg <- aggregate(harga ~ komoditi + bulan, data = beras, FUN = mean)
+beras.agg
+```
+
+## 4.3 BUAT PLOT
+
+```{r}
+ggplot(data = beras.agg, mapping = aes(x = harga , y = bulan)) +
+  geom_col(width = 0.8, mapping = aes(fill = komoditi), position = "dodge") +
+  geom_label(mapping = aes(label = harga),
+             nudge_y = 0.001,
+             size = 2) +
+  labs(x = "Harga Rata-Rata",
+       y = "Bulan",
+       fill = "",
+       title = "Harga Rata-Rata Beras",
+       subtitle = "Perbandingan Harga Rata2 Beras Medium dan Beras Premium") +
+  scale_x_continuous(labels = scales::comma)
+  
+```
+## 4.4 INSIGHT
+
+  Terlihat dari plot diatas dapat disimpulkan :
+  
+    a. Harga rata-rata beras premium selalu diatas harga rata-rata beras medium     
+       ditiap-tiap bulan
+       
+    b. Harga rata-rata tertinggi adalah beras premium dan terdapat di bulan May (14.464)
+    
+    c. Harga rata-rata terendah adalah beras medium dan terdapat di bulan July (10.590)   
+
+
+
+
+
